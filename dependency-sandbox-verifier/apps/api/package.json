@@ -1,0 +1,27 @@
+{
+  "name": "@dsv/api",
+  "version": "1.0.0",
+  "description": "API server",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@dsv/db": "file:../../packages/db",
+    "@dsv/shared": "file:../../packages/shared",
+    "@dsv/github": "file:../../packages/github",
+    "fastify": "^5.0.0",
+    "bullmq": "^4.0.0",
+    "ioredis": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/jest": "^29.0.0",
+    "jest": "^29.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  }
+}

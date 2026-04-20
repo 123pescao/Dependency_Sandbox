@@ -1,0 +1,22 @@
+{
+  "name": "@dsv/analyzers",
+  "version": "1.0.0",
+  "description": "Deterministic analyzers for vulnerabilities, provenance, etc.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@dsv/shared": "file:../shared",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.4.9",
+    "typescript": "^5.0.0"
+  }
+}

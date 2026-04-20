@@ -1,0 +1,23 @@
+{
+  "name": "@dsv/web",
+  "version": "1.0.0",
+  "description": "Web dashboard",
+  "scripts": {
+    "build": "next build",
+    "start": "next start",
+    "dev": "next dev",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@dsv/shared": "file:../../packages/shared",
+    "next": "^15.5.15",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  }
+}

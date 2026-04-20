@@ -1,0 +1,368 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Repository {
+  id          String   @id @default(cuid())
+  name        String
+  owner       String
+  url         String
+  githubId    String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  scans       Scan[]
+  baselines   Baseline[]
+  approvals   Approval[]
+
+  @@unique([owner, name])
+}
+
+model Scan {
+  id            String   @id @default(cuid())
+  repositoryId  String
+  repository    Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  status        ScanStatus
+  triggeredBy   String
+  commitSha     String?
+  prNumber      Int?
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  scanTargets   ScanTarget[]
+  findings      Finding[]
+  aiExplanations AIExplanation[]
+  sandboxRuns   SandboxRun[]
+  sboms         Sbom[]
+
+  @@index([repositoryId])
+}
+
+enum ScanStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model ScanTarget {
+  id         String   @id @default(cuid())
+  scanId     String
+  scan       Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  type       TargetType
+  path       String
+  content    String?  // For diff content or manifest content
+  createdAt  DateTime @default(now())
+
+  dependencyChanges DependencyChange[]
+
+  @@index([scanId])
+}
+
+enum TargetType {
+  MANIFEST
+  LOCKFILE
+  DIFF
+}
+
+model DependencyChange {
+  id             String   @id @default(cuid())
+  scanTargetId   String
+  scanTarget     ScanTarget @relation(fields: [scanTargetId], references: [id], onDelete: Cascade)
+  packageName    String
+  previousVersion String?
+  newVersion     String?
+  changeType     ChangeType
+  ecosystem      Ecosystem
+  createdAt      DateTime @default(now())
+
+  package        Package? @relation(fields: [packageName], references: [name])
+
+  @@index([scanTargetId])
+  @@index([packageName])
+}
+
+enum ChangeType {
+  ADDED
+  REMOVED
+  UPDATED
+}
+
+enum Ecosystem {
+  NPM
+  PYPI
+  CARGO
+  MAVEN
+}
+
+model Package {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  ecosystem   Ecosystem
+  description String?
+  homepage    String?
+  repository  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions    PackageVersion[]
+  changes     DependencyChange[]
+  sboms       Sbom[]
+  vulnerabilities Vulnerability[]
+  attestations Attestation[]
+}
+
+model PackageVersion {
+  id          String   @id @default(cuid())
+  packageId   String
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  version     String
+  integrity   String?
+  tarballUrl  String?
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  sboms       Sbom[]
+  vulnerabilities Vulnerability[]
+
+  attestations Attestation[]
+
+  @@unique([packageId, version])
+  @@index([packageId])
+}
+
+model Sbom {
+  id             String   @id @default(cuid())
+  scanId         String?
+  scan           Scan?    @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  packageId      String?
+  package        Package? @relation(fields: [packageId], references: [id])
+  packageVersionId String?
+  packageVersion PackageVersion? @relation(fields: [packageVersionId], references: [id])
+  format         SbomFormat
+  content        Json
+  createdAt      DateTime @default(now())
+
+  @@index([scanId])
+  @@index([packageId])
+  @@index([packageVersionId])
+}
+
+enum SbomFormat {
+  CycloneDX
+  SPDX
+}
+
+model Vulnerability {
+  id          String   @id @default(cuid())
+  packageId   String
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  versionId   String?
+  version     PackageVersion? @relation(fields: [versionId], references: [id])
+  vulnId      String   // e.g., CVE-2021-1234 or OSV id
+  source      String   // e.g., OSV
+  severity    Severity
+  summary     String
+  details     String?
+  affectedVersions String?
+  fixedVersions String?
+  references  Json?    // Array of URLs
+  publishedAt DateTime?
+  modifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([packageId, vulnId])
+  @@index([packageId])
+  @@index([versionId])
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Attestation {
+  id             String   @id @default(cuid())
+  packageId      String
+  package        Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  versionId      String?
+  version        PackageVersion? @relation(fields: [versionId], references: [id])
+  type           AttestationType
+  issuer         String?
+  subject        String?
+  verified       Boolean
+  evidence       Json
+  createdAt      DateTime @default(now())
+
+  @@index([packageId])
+  @@index([versionId])
+}
+
+enum AttestationType {
+  GITHUB_ARTIFACT
+  SIGSTORE
+  NPM_PROVENANCE
+  PYPI_ATTESTATION
+}
+
+model SandboxRun {
+  id         String   @id @default(cuid())
+  scanId     String
+  scan       Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  packageName String
+  version    String
+  status     SandboxStatus
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  duration   Int?     // in milliseconds
+
+  events     SandboxEvent[]
+  findings   Finding[]
+
+  @@index([scanId])
+}
+
+enum SandboxStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model SandboxEvent {
+  id            String   @id @default(cuid())
+  sandboxRunId  String
+  sandboxRun    SandboxRun @relation(fields: [sandboxRunId], references: [id], onDelete: Cascade)
+  eventType     EventType
+  timestamp     DateTime @default(now())
+  details       Json     // Structured data for the event
+
+  @@index([sandboxRunId])
+}
+
+enum EventType {
+  PROCESS_SPAWN
+  FILE_WRITE
+  NETWORK_ACCESS
+  SCRIPT_EXECUTION
+  ENVIRONMENT_ACCESS
+}
+
+model Finding {
+  id             String   @id @default(cuid())
+  scanId         String
+  scan           Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  type           FindingType
+  severity       Severity
+  title          String
+  description    String
+  evidence       Json
+  packageName    String?
+  version        String?
+  resolved       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  sandboxRunId  String?
+  sandboxRun    SandboxRun? @relation(fields: [sandboxRunId], references: [id])
+  policyDecisions PolicyDecision[]
+  approvals       Approval[]
+
+  @@index([scanId])
+  @@index([sandboxRunId])
+}
+
+enum FindingType {
+  VULNERABILITY
+  PROVENANCE_MISSING
+  SANDBOX_SUSPICIOUS
+  POLICY_VIOLATION
+  LICENSE_ISSUE
+}
+
+model Policy {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  regoCode    String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  decisions   PolicyDecision[]
+}
+
+model PolicyDecision {
+  id         String   @id @default(cuid())
+  findingId  String
+  finding    Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  policyId   String
+  policy     Policy   @relation(fields: [policyId], references: [id])
+  result     PolicyResult
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([findingId])
+  @@index([policyId])
+}
+
+enum PolicyResult {
+  PASS
+  WARN
+  FAIL
+  NEEDS_REVIEW
+}
+
+model AIExplanation {
+  id             String   @id @default(cuid())
+  scanId         String
+  scan           Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  executiveSummary String
+  technicalSummary String
+  rationale       String
+  confidence      Float
+  remediation     Json    // Structured remediation suggestions
+  alternatives    Json?   // Alternative packages
+  policySuggestions Json? // Suggested policy changes
+  createdAt       DateTime @default(now())
+
+  @@index([scanId])
+}
+
+model Approval {
+  id         String   @id @default(cuid())
+  findingId  String
+  finding    Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  repositoryId String
+  repository Repository @relation(fields: [repositoryId], references: [id])
+  approvedBy String
+  reason     String?
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([findingId])
+  @@index([repositoryId])
+}
+
+model Baseline {
+  id           String   @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  snapshot     Json     // Snapshot of allowed dependencies/versions
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([repositoryId, name])
+  @@index([repositoryId])
+}

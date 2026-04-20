@@ -1,0 +1,21 @@
+{
+  "name": "@dsv/sandbox-runner",
+  "version": "1.0.0",
+  "description": "Sandbox runner for isolated dependency execution",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@dsv/shared": "file:../shared",
+    "dockerode": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.0",
+    "@types/jest": "^29.0.0",
+    "jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  }
+}

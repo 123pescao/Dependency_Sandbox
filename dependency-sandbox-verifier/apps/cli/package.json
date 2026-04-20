@@ -1,0 +1,22 @@
+{
+  "name": "@dsv/cli",
+  "version": "1.0.0",
+  "description": "CLI tool",
+  "bin": { "dsv": "dist/index.js" },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@dsv/shared": "file:../../packages/shared",
+    "@dsv/analyzers": "file:../../packages/analyzers",
+    "@dsv/policy-engine": "file:../../packages/policy-engine",
+    "@dsv/ai": "file:../../packages/ai",
+    "commander": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  }
+}
