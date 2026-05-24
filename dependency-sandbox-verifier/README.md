@@ -1,6 +1,6 @@
 # Dependency Sandbox Verifier (DSV)
 
-AI-assisted supply-chain security platform for verifying dependency changes.
+AI-assisted supply-chain security platform for verifying dependency changes..
 
 ## Architecture
 
